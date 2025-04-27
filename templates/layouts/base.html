@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}School Attendance System{% endblock %}</title>
+    <!-- Bootstrap Icons CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-width: 24rem;
+        }
+        
+        .toast {
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .toast.hide {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        
+        @media (max-width: 640px) {
+            .toast-container {
+                left: 1rem;
+                right: 1rem;
+            }
+            
+            .toast {
+                transform: translateY(-100%);
+            }
+            
+            .toast.show {
+                transform: translateY(0);
+            }
+            
+            .toast.hide {
+                transform: translateY(-100%);
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navbar block -->
+    {% block navbar %}
+        {% include 'includes/navbar.html' %}
+    {% endblock %}
+    
+    <!-- Toast notifications container -->
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <!-- Main content container -->
+    <div class="container mx-auto px-4 py-8">
+        <!-- Breadcrumb navigation -->
+        {% block breadcrumb %}{% endblock %}
+        
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        {% for category, message in messages %}
+                            // Convert Flask message categories to toast types
+                            let type = "{{ category }}";
+                            if (type === "message") type = "info";
+                            
+                            // Show toast
+                            showToast("{{ message }}", type);
+                        {% endfor %}
+                    });
+                </script>
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Modal container with semi-transparent backdrop -->
+    <div id="modalContainer" class="fixed inset-0 bg-opacity-40 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-opacity duration-300">
+        <div id="modalContent" class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 overflow-hidden transform transition-transform duration-300 scale-95 opacity-0">
+            <!-- Modal content will be injected here -->
+        </div>
+    </div>
+    
+    <!-- Common scripts -->
+    <script>
+        // Toast notification system
+        function showToast(message, type = 'info', duration = 5000) {
+            const toastContainer = document.getElementById('toastContainer');
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast shadow-lg rounded-lg overflow-hidden max-w-xs sm:max-w-md';
+            
+            // Set background and icon based on type
+            let bgClass, textClass, iconClass;
+            switch (type) {
+                case 'success':
+                    bgClass = 'bg-green-100 border-l-4 border-green-500';
+                    textClass = 'text-green-700';
+                    iconClass = 'bi bi-check-circle-fill text-green-500';
+                    break;
+                case 'error':
+                case 'danger':
+                    bgClass = 'bg-red-100 border-l-4 border-red-500';
+                    textClass = 'text-red-700';
+                    iconClass = 'bi bi-exclamation-circle-fill text-red-500';
+                    break;
+                case 'warning':
+                    bgClass = 'bg-yellow-100 border-l-4 border-yellow-500';
+                    textClass = 'text-yellow-700';
+                    iconClass = 'bi bi-exclamation-triangle-fill text-yellow-500';
+                    break;
+                default: // info
+                    bgClass = 'bg-blue-100 border-l-4 border-blue-500';
+                    textClass = 'text-blue-700';
+                    iconClass = 'bi bi-info-circle-fill text-blue-500';
+            }
+            
+            // Create toast content
+            toast.innerHTML = `
+                <div class="${bgClass} p-4 flex items-start">
+                    <div class="flex-shrink-0">
+                        <i class="${iconClass}"></i>
+                    </div>
+                    <div class="${textClass} ml-3 flex-grow">
+                        <p class="text-sm font-medium">${message}</p>
+                    </div>
+                    <div class="ml-auto flex-shrink-0">
+                        <button type="button" class="inline-flex ${textClass} focus:outline-none" onclick="dismissToast(this.parentNode.parentNode.parentNode)">
+                            <i class="bi bi-x text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add to container
+            toastContainer.appendChild(toast);
+            
+            // Show with animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            // Auto dismiss after duration
+            const timeout = setTimeout(() => {
+                dismissToast(toast);
+            }, duration);
+            
+            // Store timeout ID in the element
+            toast.dataset.timeoutId = timeout;
+            
+            return toast;
+        }
+        
+        function dismissToast(toast) {
+            // Clear any existing timeout
+            if (toast.dataset.timeoutId) {
+                clearTimeout(parseInt(toast.dataset.timeoutId));
+            }
+            
+            // Add hide class for animation
+            toast.classList.add('hide');
+            toast.classList.remove('show');
+            
+            // Remove from DOM after animation
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }
+        
+        // Modal functions
+        function openModal(content) {
+            const modalContainer = document.getElementById('modalContainer');
+            const modalContent = document.getElementById('modalContent');
+            
+            modalContent.innerHTML = content;
+            modalContainer.classList.remove('hidden');
+            
+            // Add a small delay to ensure the transition works properly
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 50);
+            
+            document.body.classList.add('overflow-hidden'); // Prevent scrolling when modal is open
+        }
+        
+        function closeModal() {
+            const modalContainer = document.getElementById('modalContainer');
+            const modalContent = document.getElementById('modalContent');
+            
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            
+            // Wait for the animation to complete before hiding the modal
+            setTimeout(() => {
+                modalContainer.classList.add('hidden');
+                modalContent.innerHTML = '';
+                document.body.classList.remove('overflow-hidden');
+            }, 200);
+        }
+        
+        // Close modal when clicking outside of it
+        document.getElementById('modalContainer').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeModal();
+            }
+        });
+        
+        // Escape key to close modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

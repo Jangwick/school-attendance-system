@@ -1,0 +1,311 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Attendance Dashboard - School Attendance System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-gradient {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 240px;
+        width: 100%;
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in;
+    }
+    
+    .animate-slide-in {
+        animation: slideIn 0.4s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .hover-scale {
+        transition: transform 0.3s ease;
+    }
+    
+    .hover-scale:hover {
+        transform: scale(1.02);
+    }
+    
+    .student-row:hover {
+        background-color: rgba(59, 130, 246, 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex mb-5" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+            <a href="{{ url_for('dashboard') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <i class="bi bi-house-door mr-2"></i>
+                Dashboard
+            </a>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <i class="bi bi-chevron-right text-gray-400 mx-2"></i>
+                <a href="{{ url_for('students_by_subject', subject_id=subject.id) }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {{ subject.name }}
+                </a>
+            </div>
+        </li>
+        <li aria-current="page">
+            <div class="flex items-center">
+                <i class="bi bi-chevron-right text-gray-400 mx-2"></i>
+                <span class="text-sm font-medium text-gray-500">Attendance Dashboard</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-1">Attendance Dashboard</h1>
+            <p class="text-gray-600">{{ subject.name }} ({{ subject.code }})</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="{{ url_for('scan_qr', subject_id=subject.id) }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center shadow-md hover-scale">
+                <i class="bi bi-qr-code-scan mr-2"></i> Scan QR Code
+            </a>
+            <a href="{{ url_for('subject_report', subject_id=subject.id) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center shadow-md hover-scale">
+                <i class="bi bi-file-earmark-text mr-2"></i> View Report
+            </a>
+        </div>
+    </div>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded-md shadow-md mb-6 animate-fade-in" role="alert">
+                    <div class="flex">
+                        <div class="py-1"><i class="bi bi-check-circle-fill text-xl"></i></div>
+                        <div class="ml-3">
+                            <p class="font-medium">{{ message }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <!-- Today's Attendance Card -->
+        <div class="bg-white rounded-lg shadow-md p-6 hover-scale animate-slide-in">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Today's Attendance</h3>
+                <span class="text-xs font-medium bg-blue-100 text-blue-800 rounded-full px-2.5 py-1">
+                    {{ today.strftime('%B %d, %Y') }}
+                </span>
+            </div>
+            
+            <div class="flex items-center mb-4">
+                <div class="text-4xl font-bold text-blue-600">{{ attendance_count }}</div>
+                <div class="ml-2 text-gray-600">
+                    <span>of {{ students|length }} students</span><br>
+                    <span class="text-sm">marked present today</span>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ (attendance_count / students|length) * 100 if students|length else 0 }}%"></div>
+            </div>
+            
+            <!-- Percentage -->
+            <div class="flex justify-between text-xs text-gray-600">
+                <span>{{ ((attendance_count / students|length) * 100) | int if students|length else 0 }}% Present</span>
+                <span>{{ students|length - attendance_count }} Absent</span>
+            </div>
+        </div>
+        
+        <!-- Weekly Chart Card -->
+        <div class="bg-white rounded-lg shadow-md p-6 md:col-span-2 hover-scale animate-slide-in" style="animation-delay: 0.1s">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Weekly Attendance Trend</h3>
+                <div class="text-sm text-gray-500">Last 7 days</div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="weeklyTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Additional Charts Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- Attendance Distribution -->
+        <div class="bg-white rounded-lg shadow-md p-6 hover-scale animate-slide-in" style="animation-delay: 0.2s">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Today's Attendance</h3>
+                <div class="text-sm text-gray-500">
+                    <i class="bi bi-calendar-check mr-1"></i> {{ today.strftime('%d %b %Y') }}
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="attendanceDistributionChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Student Performance -->
+        <div class="bg-white rounded-lg shadow-md p-6 hover-scale animate-slide-in" style="animation-delay: 0.3s">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Student Attendance Rate</h3>
+                <div class="text-sm text-gray-500">
+                    <i class="bi bi-people"></i> Top 5 students
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="studentPerformanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Student List Panel -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6 animate-slide-in" style="animation-delay: 0.4s">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 class="text-xl font-bold text-gray-800">Students</h2>
+                
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div class="flex items-center bg-gray-100 px-3 py-1.5 rounded-lg">
+                        <i class="bi bi-people text-gray-600 mr-2"></i>
+                        <span id="studentCount" class="text-gray-600 text-sm font-medium">{{ students|length }} students</span>
+                    </div>
+                    
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="Search students..." 
+                               class="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="bi bi-search text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full" id="studentsTable">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="py-3 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">School ID</th>
+                        <th class="py-3 px-6 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="py-3 px-6 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="py-3 px-6 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 bg-white">
+                    {% for student in students %}
+                    <tr class="student-row transition-colors">
+                        <td class="py-4 px-6 text-sm text-gray-800">{{ student.school_id }}</td>
+                        <td class="py-4 px-6 text-sm font-medium text-gray-800">{{ student.name }}</td>
+                        <td class="py-4 px-6 text-sm text-center">
+                            {% if student.id in marked_students %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="bi bi-check-circle-fill mr-1"></i> Present
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    <i class="bi bi-dash-circle mr-1"></i> Not Marked
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-sm text-center">
+                            {% if student.id not in marked_students %}
+                            <form action="{{ url_for('attendance', subject_id=subject.id) }}" method="post" class="inline-block">
+                                <input type="hidden" name="student_id" value="{{ student.id }}">
+                                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded-md mr-2 transition-colors">
+                                    <i class="bi bi-check-circle mr-1"></i> Mark Present
+                                </button>
+                            </form>
+                            {% endif %}
+                            <button onclick="showQRCode({{ student.id }})" class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded-md transition-colors">
+                                <i class="bi bi-qr-code mr-1"></i> QR Code
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="py-8 px-6 text-center text-gray-500">
+                            <div class="flex flex-col items-center">
+                                <i class="bi bi-people-fill text-3xl mb-2"></i>
+                                <p>No students found for this subject.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Include chart scripts -->
+    {% include 'charts/weekly_trend.html' %}
+    {% include 'charts/attendance_distribution.html' %}
+    {% include 'charts/student_performance.html' %}
+    
+    <script>
+        // Simple search functionality
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const table = document.getElementById('studentsTable');
+            const rows = table.getElementsByTagName('tr');
+            let visibleCount = 0;
+            
+            for (let i = 1; i < rows.length; i++) {
+                const schoolId = rows[i].getElementsByTagName('td')[0];
+                const name = rows[i].getElementsByTagName('td')[1];
+                
+                if (schoolId && name) {
+                    const idText = schoolId.textContent || schoolId.innerText;
+                    const nameText = name.textContent || name.innerText;
+                    
+                    if (idText.toLowerCase().indexOf(searchValue) > -1 || nameText.toLowerCase().indexOf(searchValue) > -1) {
+                        rows[i].style.display = '';
+                        visibleCount++;
+                    } else {
+                        rows[i].style.display = 'none';
+                    }
+                }
+            }
+            
+            // Update visible student count
+            document.getElementById('studentCount').textContent = `${visibleCount} students`;
+        });
+        
+        // Function to show QR code in modal
+        function showQRCode(studentId) {
+            fetch(`/api/generate-qr/${studentId}`)
+                .then(response => response.text())
+                .then(html => {
+                    openModal(html);
+                })
+                .catch(error => {
+                    console.error('Error fetching QR code:', error);
+                });
+        }
+    </script>
+{% endblock %}

@@ -1,0 +1,251 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Reports - School Attendance System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in;
+    }
+    
+    .animate-slide-in {
+        animation: slideIn 0.4s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .hover-scale {
+        transition: transform 0.3s ease;
+    }
+    
+    .hover-scale:hover {
+        transform: scale(1.02);
+    }
+    
+    .report-card {
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .report-card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        transform: translateY(-5px);
+    }
+    
+    .report-card-empty {
+        transform: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex mb-5" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+            <a href="{{ url_for('dashboard') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <i class="bi bi-house-door mr-2"></i>
+                Dashboard
+            </a>
+        </li>
+        <li aria-current="page">
+            <div class="flex items-center">
+                <i class="bi bi-chevron-right text-gray-400 mx-2"></i>
+                <span class="text-sm font-medium text-gray-500">Reports</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div class="mb-4 md:mb-0">
+            <h1 class="text-3xl font-bold mb-1 text-gray-800">Reports</h1>
+            <p class="text-gray-600">View and manage attendance reports</p>
+        </div>
+        
+        <div class="flex flex-wrap gap-2">
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="Search subjects..." 
+                       class="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="bi bi-search text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 animate-fade-in">
+        <div class="bg-white rounded-lg shadow-md p-6 hover-scale">
+            <div class="flex items-center mb-4">
+                <div class="p-3 bg-blue-100 rounded-full mr-4">
+                    <i class="bi bi-calendar-check text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Total Subjects</h3>
+                    <p class="text-gray-500 text-sm">All tracked subjects</p>
+                </div>
+            </div>
+            <p class="text-3xl font-bold text-blue-700">{{ subjects|length }}</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 hover-scale">
+            <div class="flex items-center mb-4">
+                <div class="p-3 bg-green-100 rounded-full mr-4">
+                    <i class="bi bi-people-fill text-green-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Unique Students</h3>
+                    <p class="text-gray-500 text-sm">Across all subjects</p>
+                </div>
+            </div>
+            <p class="text-3xl font-bold text-green-700">{{ unique_student_count }}</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 hover-scale">
+            <div class="flex items-center mb-4">
+                <div class="p-3 bg-purple-100 rounded-full mr-4">
+                    <i class="bi bi-bar-chart-line text-purple-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Average Attendance</h3>
+                    <p class="text-gray-500 text-sm">Across all subjects</p>
+                </div>
+            </div>
+            <p class="text-3xl font-bold text-purple-700">{{ average_attendance }}%</p>
+        </div>
+    </div>
+    
+    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center animate-fade-in">
+        <i class="bi bi-file-earmark-text mr-3 text-blue-600"></i> Available Reports
+    </h2>
+    
+    <div id="subjectReports" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-in">
+        {% for subject in subjects %}
+        <a href="{{ url_for('subject_report', subject_id=subject.id) }}" class="report-card bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="h-3 
+                      {% if loop.index0 % 5 == 0 %}bg-blue-500
+                      {% elif loop.index0 % 5 == 1 %}bg-green-500
+                      {% elif loop.index0 % 5 == 2 %}bg-purple-500
+                      {% elif loop.index0 % 5 == 3 %}bg-amber-500
+                      {% else %}bg-pink-500{% endif %}">
+            </div>
+            <div class="p-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 rounded-full
+                              {% if loop.index0 % 5 == 0 %}bg-blue-100 text-blue-600
+                              {% elif loop.index0 % 5 == 1 %}bg-green-100 text-green-600
+                              {% elif loop.index0 % 5 == 2 %}bg-purple-100 text-purple-600
+                              {% elif loop.index0 % 5 == 3 %}bg-amber-100 text-amber-600
+                              {% else %}bg-pink-100 text-pink-600{% endif %}
+                              flex items-center justify-center mr-4">
+                        <i class="bi bi-file-text text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">{{ subject.name }}</h3>
+                        <p class="text-sm text-gray-500">{{ subject.code }}</p>
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-100 pt-4">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <p class="text-xs text-gray-500">Students</p>
+                            <p class="text-sm font-semibold">{{ subject.students.count() }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Classes</p>
+                            <p class="text-sm font-semibold">{{ subject.attendance_records|map(attribute='date')|unique|list|count }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                <span class="text-sm
+                      {% if loop.index0 % 5 == 0 %}text-blue-600
+                      {% elif loop.index0 % 5 == 1 %}text-green-600
+                      {% elif loop.index0 % 5 == 2 %}text-purple-600
+                      {% elif loop.index0 % 5 == 3 %}text-amber-600
+                      {% else %}text-pink-600{% endif %}">
+                    View Full Report
+                </span>
+                <i class="bi bi-arrow-right
+                      {% if loop.index0 % 5 == 0 %}text-blue-600
+                      {% elif loop.index0 % 5 == 1 %}text-green-600
+                      {% elif loop.index0 % 5 == 2 %}text-purple-600
+                      {% elif loop.index0 % 5 == 3 %}text-amber-600
+                      {% else %}text-pink-600{% endif %}">
+                </i>
+            </div>
+        </a>
+        {% else %}
+        <div class="report-card report-card-empty bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden col-span-full p-6 text-center animate-fade-in">
+            <div class="inline-block p-6 bg-blue-50 rounded-full mb-4">
+                <i class="bi bi-file-earmark-x text-5xl text-blue-500"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">No Reports Available</h3>
+            <p class="text-gray-600 mb-6">You don't have any subjects assigned yet to generate reports from.</p>
+        </div>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        const searchValue = this.value.toLowerCase();
+        const reportCards = document.getElementById('subjectReports').children;
+        
+        for (let i = 0; i < reportCards.length; i++) {
+            const card = reportCards[i];
+            const subjectName = card.querySelector('h3').innerText.toLowerCase();
+            const subjectCode = card.querySelector('p.text-sm.text-gray-500').innerText.toLowerCase();
+            
+            if (subjectName.includes(searchValue) || subjectCode.includes(searchValue)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        }
+        
+        // Show "no results" message if all cards are hidden
+        let allHidden = true;
+        for (let i = 0; i < reportCards.length; i++) {
+            if (reportCards[i].style.display !== 'none') {
+                allHidden = false;
+                break;
+            }
+        }
+        
+        // Check if a "no results" message already exists
+        let noResultsEl = document.getElementById('noResultsMessage');
+        
+        if (allHidden && searchValue !== '') {
+            if (!noResultsEl) {
+                noResultsEl = document.createElement('div');
+                noResultsEl.id = 'noResultsMessage';
+                noResultsEl.className = 'col-span-full p-6 text-center bg-gray-50 rounded-lg';
+                noResultsEl.innerHTML = `
+                    <i class="bi bi-search text-4xl text-gray-400 mb-2"></i>
+                    <p class="text-gray-600">No reports found matching "${searchValue}"</p>
+                `;
+                document.getElementById('subjectReports').appendChild(noResultsEl);
+            } else {
+                noResultsEl.querySelector('p').textContent = `No reports found matching "${searchValue}"`;
+                noResultsEl.style.display = 'block';
+            }
+        } else if (noResultsEl) {
+            noResultsEl.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

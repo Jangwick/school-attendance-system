@@ -1,0 +1,147 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}QR Code - School Attendance System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .animate-zoom-in {
+        animation: zoomIn 0.4s ease-out;
+    }
+    
+    @keyframes zoomIn {
+        from { transform: scale(0.9); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    
+    .hover-scale {
+        transition: transform 0.3s ease;
+    }
+    
+    .hover-scale:hover {
+        transform: scale(1.05);
+    }
+    
+    .qr-container {
+        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex mb-5" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+            <a href="{{ url_for('dashboard') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <i class="bi bi-house-door mr-2"></i>
+                Dashboard
+            </a>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <i class="bi bi-chevron-right text-gray-400 mx-2"></i>
+                <a href="{{ url_for('students') }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                    All Students
+                </a>
+            </div>
+        </li>
+        <li aria-current="page">
+            <div class="flex items-center">
+                <i class="bi bi-chevron-right text-gray-400 mx-2"></i>
+                <span class="text-sm font-medium text-gray-500">QR Code: {{ student.name }}</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+    <div class="max-w-2xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+                <i class="bi bi-qr-code text-blue-600 mr-3"></i>
+                <span>Student QR Code</span>
+            </h1>
+            
+            <a href="{{ url_for('students') }}" class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg mt-2 md:mt-0 transition-colors">
+                <i class="bi bi-arrow-left mr-2"></i> Back to Students
+            </a>
+        </div>
+        
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden animate-fade-in">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6">
+                <div class="flex items-center">
+                    <div class="w-16 h-16 rounded-full bg-white text-blue-600 flex items-center justify-center text-3xl font-bold mr-4">
+                        {{ student.name[0]|upper }}
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold">{{ student.name }}</h2>
+                        <p class="text-blue-100">School ID: {{ student.school_id }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6 flex flex-col items-center">
+                <div class="qr-container border-8 border-white shadow-lg p-4 rounded-lg mb-6 animate-zoom-in">
+                    <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code for {{ student.name }}" class="w-64 h-64">
+                </div>
+                
+                <div class="text-center mb-6">
+                    <p class="text-gray-500 mb-2">Scan this QR code to mark attendance for:</p>
+                    <p class="text-lg font-semibold text-gray-800">{{ student.name }}</p>
+                    <p class="text-sm text-gray-600">School ID: {{ student.school_id }}</p>
+                </div>
+                
+                <div class="flex flex-wrap justify-center gap-4">
+                    <button onclick="printQRCode()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center shadow-md hover-scale">
+                        <i class="bi bi-printer mr-2 text-lg"></i> Print QR Code
+                    </button>
+                    <button onclick="downloadQRCode()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center shadow-md hover-scale">
+                        <i class="bi bi-download mr-2 text-lg"></i> Download QR Code
+                    </button>
+                </div>
+                
+                <div class="mt-6 text-center text-gray-500 text-sm">
+                    <p>Last generated on {{ now.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        function printQRCode() {
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write('<html><head><title>Print QR Code</title>');
+            printWindow.document.write('</head><body style="display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 20px;">');
+            printWindow.document.write('<h1 style="margin-bottom: 10px;">{{ student.name }}</h1>');
+            printWindow.document.write('<p style="margin-bottom: 20px;">School ID: {{ student.school_id }}</p>');
+            printWindow.document.write('<img src="data:image/png;base64,{{ qr_code }}" style="width: 300px; height: 300px; border: 1px solid #ddd; padding: 10px;">');
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }
+        
+        function downloadQRCode() {
+            const link = document.createElement('a');
+            link.href = 'data:image/png;base64,{{ qr_code }}';
+            link.download = '{{ student.school_id }}_qr_code.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Current datetime for display (this is just for UI, actual timestamp is handled by the server)
+        const now = new Date();
+    </script>
+{% endblock %}

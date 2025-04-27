@@ -1,0 +1,107 @@
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get data for the chart
+        const presentCount = {{ attendance_count }};
+        const absentCount = {{ students|length - attendance_count }};
+        
+        // Attendance Distribution Chart
+        const ctx = document.getElementById('attendanceDistributionChart').getContext('2d');
+        
+        const attendanceDistributionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Present', 'Absent'],
+                datasets: [{
+                    data: [presentCount, absentCount],
+                    backgroundColor: [
+                        'rgba(34, 197, 94, 0.8)', // green
+                        'rgba(239, 68, 68, 0.8)'  // red
+                    ],
+                    borderColor: [
+                        'rgb(34, 197, 94)',
+                        'rgb(239, 68, 68)'
+                    ],
+                    borderWidth: 1,
+                    hoverOffset: 5
+                }]
+            },
+            options: {
+                cutout: '65%',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 13,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        cornerRadius: 6,
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                }
+            }
+        });
+        
+        // Add center text
+        const totalStudents = {{ students|length }};
+        if (totalStudents > 0) {
+            Chart.register({
+                id: 'centerText',
+                beforeDraw: function(chart) {
+                    if (chart.config.type === 'doughnut') {
+                        // Get ctx from chart
+                        const ctx = chart.ctx;
+                        
+                        // Get chart area position and dimensions
+                        const chartArea = chart.chartArea;
+                        const centerX = (chartArea.left + chartArea.right) / 2;
+                        const centerY = (chartArea.top + chartArea.bottom) / 2;
+                        
+                        // Text configuration
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        
+                        const percentage = (presentCount / totalStudents * 100).toFixed(0);
+                        
+                        // Draw percentage text
+                        ctx.font = 'bold 20px Arial';
+                        ctx.fillStyle = '#333';
+                        ctx.fillText(percentage + '%', centerX, centerY - 10);
+                        
+                        // Draw label text
+                        ctx.font = '12px Arial';
+                        ctx.fillStyle = '#666';
+                        ctx.fillText('Present', centerX, centerY + 10);
+                    }
+                }
+            });
+        }
+    });
+</script>

@@ -1,0 +1,81 @@
+<nav class="bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg">
+    <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+                <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-2 hover:opacity-90 transition-opacity">
+                    <div class="bg-white text-indigo-600 rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
+                        <i class="bi bi-calendar-check text-lg"></i>
+                    </div>
+                    <span class="font-semibold text-lg hidden sm:inline">School Attendance System</span>
+                    <span class="font-semibold text-lg sm:hidden">SAS</span>
+                </a>
+            </div>
+            
+            <div class="hidden md:flex space-x-1">
+                <a href="{{ url_for('dashboard') }}" class="py-2 px-4 hover:bg-indigo-500 hover:bg-opacity-30 rounded-lg flex items-center transition-colors {{ 'bg-indigo-500 bg-opacity-30' if request.path == url_for('dashboard') else '' }}">
+                    <i class="bi bi-speedometer2 mr-2"></i> Dashboard
+                </a>
+                <a href="{{ url_for('students') }}" class="py-2 px-4 hover:bg-indigo-500 hover:bg-opacity-30 rounded-lg flex items-center transition-colors {{ 'bg-indigo-500 bg-opacity-30' if request.path == url_for('students') else '' }}">
+                    <i class="bi bi-people mr-2"></i> Students
+                </a>
+                <a href="{{ url_for('reports') }}" class="py-2 px-4 hover:bg-indigo-500 hover:bg-opacity-30 rounded-lg flex items-center transition-colors {{ 'bg-indigo-500 bg-opacity-30' if request.path == url_for('reports') else '' }}">
+                    <i class="bi bi-file-earmark-bar-graph mr-2"></i> Reports
+                </a>
+                
+                <a href="{{ url_for('logout') }}" class="py-2 px-4 hover:bg-indigo-500 hover:bg-opacity-30 rounded-lg flex items-center transition-colors">
+                    <div class="w-8 h-8 bg-indigo-400 bg-opacity-20 rounded-full flex items-center justify-center mr-2">
+                        <span class="font-semibold text-sm">{{ current_user.name[0]|upper }}</span>
+                    </div>
+                    <span>Logout</span>
+                    <i class="bi bi-box-arrow-right ml-2"></i>
+                </a>
+            </div>
+            
+            <!-- Mobile menu button -->
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-white focus:outline-none">
+                    <i class="bi bi-list text-2xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile menu, show/hide based on menu state -->
+        <div id="mobile-menu" class="md:hidden hidden pb-4">
+            <div class="flex flex-col space-y-1 mt-2">
+                <a href="{{ url_for('dashboard') }}" class="py-2 px-4 hover:bg-indigo-500 hover:bg-opacity-30 rounded-lg flex items-center {{ 'bg-indigo-500 bg-opacity-30' if request.path == url_for('dashboard') else '' }}">
+                    <i class="bi bi-speedometer2 mr-2"></i> Dashboard
+                </a>
+                <a href="{{ url_for('students') }}" class="py-2 px-4 hover:bg-indigo-500 hover:bg-opacity-30 rounded-lg flex items-center {{ 'bg-indigo-500 bg-opacity-30' if request.path == url_for('students') else '' }}">
+                    <i class="bi bi-people mr-2"></i> Students
+                </a>
+                <a href="{{ url_for('reports') }}" class="py-2 px-4 hover:bg-indigo-500 hover:bg-opacity-30 rounded-lg flex items-center {{ 'bg-indigo-500 bg-opacity-30' if request.path == url_for('reports') else '' }}">
+                    <i class="bi bi-file-earmark-bar-graph mr-2"></i> Reports
+                </a>
+                <a href="{{ url_for('logout') }}" class="py-2 px-4 hover:bg-indigo-500 hover:bg-opacity-30 rounded-lg flex items-center">
+                    <i class="bi bi-box-arrow-right mr-2"></i> Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        mobileMenuButton.addEventListener('click', function() {
+            mobileMenu.classList.toggle('hidden');
+            
+            // Change icon based on menu state
+            const icon = mobileMenuButton.querySelector('i');
+            if (mobileMenu.classList.contains('hidden')) {
+                icon.classList.remove('bi-x-lg');
+                icon.classList.add('bi-list');
+            } else {
+                icon.classList.remove('bi-list');
+                icon.classList.add('bi-x-lg');
+            }
+        });
+    });
+</script>

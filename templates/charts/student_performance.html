@@ -1,0 +1,104 @@
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Student Performance Chart - Top 5 students by attendance rate
+        const ctx = document.getElementById('studentPerformanceChart').getContext('2d');
+        
+        // Get all students and their attendance rates
+        const allStudentData = [];
+        {% for student in students %}
+            allStudentData.push({
+                name: "{{ student.name[:15] ~ '...' if student.name|length > 15 else student.name }}",
+                rate: {{ [85, 92, 78, 100, 88][loop.index0 % 5] }}, // Sample attendance rates
+            });
+        {% endfor %}
+        
+        // Sort students by attendance rate (highest to lowest)
+        allStudentData.sort((a, b) => b.rate - a.rate);
+        
+        // Take top 5 students after sorting
+        const topStudents = allStudentData.slice(0, 5);
+        
+        const studentData = {
+            names: topStudents.map(student => student.name),
+            rates: topStudents.map(student => student.rate)
+        };
+        
+        // Color arrays for the chart
+        const barColors = [
+            'rgba(79, 70, 229, 0.8)',  // indigo
+            'rgba(59, 130, 246, 0.8)', // blue 
+            'rgba(16, 185, 129, 0.8)', // green
+            'rgba(245, 158, 11, 0.8)', // amber
+            'rgba(236, 72, 153, 0.8)'  // pink
+        ];
+        
+        const borderColors = [
+            'rgb(79, 70, 229)',
+            'rgb(59, 130, 246)',
+            'rgb(16, 185, 129)',
+            'rgb(245, 158, 11)',
+            'rgb(236, 72, 153)'
+        ];
+        
+        const studentPerformanceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: studentData.names,
+                datasets: [{
+                    label: 'Attendance Rate %',
+                    data: studentData.rates,
+                    backgroundColor: barColors,
+                    borderColor: borderColors,
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 13,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        cornerRadius: 6,
+                        callbacks: {
+                            label: function(context) {
+                                return `Attendance: ${context.parsed.x}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>

@@ -1,0 +1,164 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Login - School Attendance System{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+    }
+    
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .login-card {
+        box-shadow: 0 15px 35px rgba(50, 50, 93, 0.1), 0 5px 15px rgba(0, 0, 0, 0.07);
+        transition: transform 0.3s ease-in-out;
+    }
+    
+    .login-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.6s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .btn-login {
+        transition: all 0.2s ease;
+        background-image: linear-gradient(to right, #4f46e5 0%, #6366f1 100%);
+    }
+    
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+    }
+    
+    .btn-login:active {
+        transform: translateY(1px);
+    }
+    
+    .form-input {
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .form-input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+</style>
+{% endblock %}
+
+{# Override the navbar block to remove it for the login page #}
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="w-full max-w-md animate-fade-in">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-indigo-600 text-white mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84 51.12 51.12 0 0 0-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800">School Attendance System</h1>
+            <p class="text-gray-600 mt-2">Sign in to access your account</p>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden login-card">
+            <div class="p-8">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6" role="alert">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p>{{ message }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <form method="POST" action="{{ url_for('login') }}">
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
+                            Email Address
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                                </svg>
+                            </div>
+                            <input class="form-input pl-10 w-full py-3 px-4 text-gray-700 border border-gray-300 rounded-lg focus:outline-none" 
+                                   id="email" name="email" type="email" placeholder="teacher@school.edu" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                            Password
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <input class="form-input pl-10 w-full py-3 px-4 text-gray-700 border border-gray-300 rounded-lg focus:outline-none" 
+                                   id="password" name="password" type="password" placeholder="••••••••" required>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <input id="remember_me" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                            <label for="remember_me" class="ml-2 block text-sm text-gray-700">
+                                Remember me
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <button class="btn-login w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none" 
+                                type="submit">
+                            Sign in
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="px-8 py-4 bg-gray-50 border-t border-gray-100 text-center">
+                <p class="text-xs text-gray-600">
+                    Demo credentials: <span class="font-semibold">john.smith@school.edu</span> / <span class="font-semibold">password123</span>
+                </p>
+            </div>
+        </div>
+        
+        <p class="text-center text-gray-600 text-sm mt-6">
+            &copy; 2025 School Attendance System. All rights reserved.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{# Override scripts block if login page needs specific scripts or none #}
+{% block scripts %}{% endblock %}

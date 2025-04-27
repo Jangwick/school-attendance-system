@@ -1,0 +1,462 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}{{ subject.name }} Report - School Attendance System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in;
+    }
+    
+    .animate-slide-in {
+        animation: slideIn 0.4s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .hover-scale {
+        transition: transform 0.3s ease;
+    }
+    
+    .hover-scale:hover {
+        transform: scale(1.02);
+    }
+    
+    .student-row:hover {
+        background-color: rgba(59, 130, 246, 0.05);
+    }
+    
+    @media print {
+        .no-print {
+            display: none;
+        }
+        
+        .print-break {
+            break-inside: avoid;
+        }
+        
+        body {
+            font-size: 12pt;
+        }
+        
+        .print-only {
+            display: block !important;
+        }
+        
+        .print-table-container {
+            overflow: visible !important;
+        }
+        
+        .print-table th, .print-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .print-table th {
+            background-color: #f0f0f0 !important;
+            color: black !important;
+        }
+    }
+    
+    .print-only {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex mb-5 no-print" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+            <a href="{{ url_for('dashboard') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <i class="bi bi-house-door mr-2"></i>
+                Dashboard
+            </a>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <i class="bi bi-chevron-right text-gray-400 mx-2"></i>
+                <a href="{{ url_for('reports') }}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                    Reports
+                </a>
+            </div>
+        </li>
+        <li aria-current="page">
+            <div class="flex items-center">
+                <i class="bi bi-chevron-right text-gray-400 mx-2"></i>
+                <span class="text-sm font-medium text-gray-500">{{ subject.name }}</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+    <div class="print-only bg-white p-4 mb-6">
+        <h1 class="text-2xl font-bold text-center">School Attendance System</h1>
+        <p class="text-center text-gray-600">Attendance Report - Generated on {{ today.strftime('%B %d, %Y') }}</p>
+        <div class="text-center mt-2">
+            <h2 class="text-xl font-semibold">{{ subject.name }} ({{ subject.code }})</h2>
+        </div>
+    </div>
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 no-print">
+        <div>
+            <h1 class="text-3xl font-bold mb-1 text-gray-800">{{ subject.name }} Report</h1>
+            <p class="text-gray-600 flex items-center">
+                <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded mr-2">{{ subject.code }}</span>
+                <span>Attendance Report</span>
+            </p>
+        </div>
+        
+        <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
+            <a href="{{ url_for('attendance', subject_id=subject.id) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center shadow-sm hover-scale transition-all">
+                <i class="bi bi-arrow-left mr-2"></i> Back to Dashboard
+            </a>
+            <button onclick="exportToExcel()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center shadow-sm hover-scale transition-all">
+                <i class="bi bi-file-earmark-excel mr-2"></i> Export to Excel
+            </button>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6 animate-fade-in print-break">
+        <div class="bg-white rounded-lg shadow-md p-6 hover-scale">
+            <div class="flex items-center mb-4">
+                <div class="p-3 bg-blue-100 rounded-full mr-4">
+                    <i class="bi bi-calendar-week text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Total Classes</h3>
+                    <p class="text-gray-500 text-sm">All sessions tracked</p>
+                </div>
+            </div>
+            <p class="text-3xl font-bold text-blue-700">{{ dates|length }}</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 hover-scale">
+            <div class="flex items-center mb-4">
+                <div class="p-3 bg-green-100 rounded-full mr-4">
+                    <i class="bi bi-people-fill text-green-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Total Students</h3>
+                    <p class="text-gray-500 text-sm">Enrolled in this subject</p>
+                </div>
+            </div>
+            <p class="text-3xl font-bold text-green-700">{{ students|length }}</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 hover-scale">
+            <div class="flex items-center mb-4">
+                <div class="p-3 bg-purple-100 rounded-full mr-4">
+                    <i class="bi bi-bar-chart-line text-purple-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Average Attendance</h3>
+                    <p class="text-gray-500 text-sm">Overall performance</p>
+                </div>
+            </div>
+            <p class="text-3xl font-bold
+                {% if subject_attendance_percentage >= 75 %}text-green-600
+                {% elif subject_attendance_percentage >= 60 %}text-yellow-600
+                {% else %}text-red-600{% endif %}">
+                {{ "%.1f"|format(subject_attendance_percentage) }}%
+            </p>
+        </div>
+    </div>
+    
+    {% if dates %}
+    <!-- Attendance Table -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6 overflow-x-auto animate-slide-in print-table-container" style="animation-delay: 0.2s">
+        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+            <i class="bi bi-table mr-3 text-blue-600"></i> Attendance Registry
+        </h2>
+        
+        <div class="overflow-x-auto mb-6">
+            <table id="attendanceTable" class="min-w-full bg-white print-table">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="py-3 px-4 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50">Student</th>
+                        <th class="py-3 px-4 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider sticky left-[8.25rem] bg-gray-50">School ID</th>
+                        {% for date in dates %}
+                        <th class="py-3 px-4 border-b-2 border-gray-200 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            {{ date.strftime('%d %b %Y') }}
+                        </th>
+                        {% endfor %}
+                        <th class="py-3 px-4 border-b-2 border-gray-200 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for student in students %}
+                    <tr class="student-row">
+                        <td class="py-3 px-4 border-b border-gray-200 text-sm font-medium sticky left-0 bg-white">{{ student.name }}</td>
+                        <td class="py-3 px-4 border-b border-gray-200 text-sm sticky left-[8.25rem] bg-white">{{ student.school_id }}</td>
+                        
+                        {% for date in dates %}
+                            {% set date_str = date.strftime('%Y-%m-%d') %}
+                            <td class="py-3 px-4 border-b border-gray-200 text-sm text-center">
+                                {% if student.id in attendance_data and date_str in attendance_data[student.id] and attendance_data[student.id][date_str] == 'present' %}
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600">
+                                        <i class="bi bi-check-lg"></i>
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-600">
+                                        <i class="bi bi-x-lg"></i>
+                                    </span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                        
+                        {% set present_count = namespace(value=0) %}
+                        {% for date in dates %}
+                            {% set date_str = date.strftime('%Y-%m-%d') %}
+                            {% if student.id in attendance_data and date_str in attendance_data[student.id] and attendance_data[student.id][date_str] == 'present' %}
+                                {% set present_count.value = present_count.value + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% set attendance_percent = (present_count.value / dates|length * 100)|round(1) if dates|length else 0 %}
+                        
+                        <td class="py-3 px-4 border-b border-gray-200 text-sm font-bold text-center">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                                {% if attendance_percent >= 75 %}bg-green-100 text-green-800
+                                {% elif attendance_percent >= 60 %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ "%.1f"|format(attendance_percent) }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print-break">
+            <!-- Calculate perfect attendance count correctly -->
+            {% set perfect_attendance_count = namespace(value=0) %}
+            {% for student in students %}
+                {% set is_perfect = true %}
+                {% for date in dates %}
+                    {% set date_str = date.strftime('%Y-%m-%d') %}
+                    {% if not (student.id in attendance_data and date_str in attendance_data[student.id] and attendance_data[student.id][date_str] == 'present') %}
+                        {% set is_perfect = false %}
+                    {% endif %}
+                {% endfor %}
+                {% if is_perfect and dates|length > 0 %}
+                    {% set perfect_attendance_count.value = perfect_attendance_count.value + 1 %}
+                {% endif %}
+            {% endfor %}
+            
+            <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-md">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-green-800">Perfect Attendance</p>
+                        <p class="text-2xl font-bold text-green-700">
+                            {{ perfect_attendance_count.value }}
+                        </p>
+                    </div>
+                    <i class="bi bi-award text-2xl text-green-400"></i>
+                </div>
+            </div>
+            
+            <!-- Calculate good attendance (75-99%) -->
+            {% set good_attendance_count = namespace(value=0) %}
+            {% for student in students %}
+                {% set present_count = namespace(value=0) %}
+                {% for date in dates %}
+                    {% set date_str = date.strftime('%Y-%m-%d') %}
+                    {% if student.id in attendance_data and date_str in attendance_data[student.id] and attendance_data[student.id][date_str] == 'present' %}
+                        {% set present_count.value = present_count.value + 1 %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if dates|length > 0 %}
+                    {% set attendance_percent = (present_count.value / dates|length * 100) %}
+                    {% if attendance_percent >= 75 and attendance_percent < 100 %}
+                        {% set good_attendance_count.value = good_attendance_count.value + 1 %}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-yellow-800">Good (75-99%)</p>
+                        <p class="text-2xl font-bold text-yellow-700">
+                            {{ good_attendance_count.value }}
+                        </p>
+                    </div>
+                    <i class="bi bi-star text-2xl text-yellow-400"></i>
+                </div>
+            </div>
+            
+            <!-- Calculate warning attendance (60-74%) -->
+            {% set warning_attendance_count = namespace(value=0) %}
+            {% for student in students %}
+                {% set present_count = namespace(value=0) %}
+                {% for date in dates %}
+                    {% set date_str = date.strftime('%Y-%m-%d') %}
+                    {% if student.id in attendance_data and date_str in attendance_data[student.id] and attendance_data[student.id][date_str] == 'present' %}
+                        {% set present_count.value = present_count.value + 1 %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if dates|length > 0 %}
+                    {% set attendance_percent = (present_count.value / dates|length * 100) %}
+                    {% if attendance_percent >= 60 and attendance_percent < 75 %}
+                        {% set warning_attendance_count.value = warning_attendance_count.value + 1 %}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            
+            <div class="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-md">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-orange-800">Warning (60-74%)</p>
+                        <p class="text-2xl font-bold text-orange-700">
+                            {{ warning_attendance_count.value }}
+                        </p>
+                    </div>
+                    <i class="bi bi-exclamation-triangle text-2xl text-orange-400"></i>
+                </div>
+            </div>
+            
+            <!-- Calculate critical attendance (<60%) -->
+            {% set critical_attendance_count = namespace(value=0) %}
+            {% for student in students %}
+                {% set present_count = namespace(value=0) %}
+                {% for date in dates %}
+                    {% set date_str = date.strftime('%Y-%m-%d') %}
+                    {% if student.id in attendance_data and date_str in attendance_data[student.id] and attendance_data[student.id][date_str] == 'present' %}
+                        {% set present_count.value = present_count.value + 1 %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if dates|length > 0 %}
+                    {% set attendance_percent = (present_count.value / dates|length * 100) %}
+                    {% if attendance_percent < 60 %}
+                        {% set critical_attendance_count.value = critical_attendance_count.value + 1 %}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            
+            <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-red-800">Critical (<60%)</p>
+                        <p class="text-2xl font-bold text-red-700">
+                            {{ critical_attendance_count.value }}
+                        </p>
+                    </div>
+                    <i class="bi bi-exclamation-octagon text-2xl text-red-400"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow-md p-12 text-center animate-fade-in">
+        <div class="inline-block p-6 bg-blue-50 rounded-full mb-4">
+            <i class="bi bi-calendar-x text-5xl text-blue-500"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">No Attendance Records Found</h3>
+        <p class="text-gray-600 mb-6">No attendance has been recorded for this subject yet.</p>
+        <div class="flex justify-center space-x-4">
+            <a href="{{ url_for('attendance', subject_id=subject.id) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg">
+                <i class="bi bi-check-square mr-2"></i> Mark Attendance
+            </a>
+            <a href="{{ url_for('scan_qr', subject_id=subject.id) }}" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg">
+                <i class="bi bi-qr-code-scan mr-2"></i> Scan QR Code
+            </a>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <!-- Include SheetJS (xlsx) library for Excel export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+
+    <script>        
+        function exportToExcel() {
+            // Get table data
+            const table = document.getElementById('attendanceTable');
+            if (!table) return;
+            
+            // Create a new workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Convert HTML table to worksheet
+            // Instead of using table_to_sheet directly, we'll manually create the sheet with better formatting
+            const data = [];
+            
+            // Add header row
+            const headerRow = [];
+            const headerCells = table.querySelectorAll('thead th');
+            headerCells.forEach(cell => {
+                headerRow.push(cell.innerText);
+            });
+            data.push(headerRow);
+            
+            // Add data rows
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const dataRow = [];
+                const cells = row.querySelectorAll('td');
+                cells.forEach((cell, index) => {
+                    // For attendance cells with icons, convert to Present/Absent text
+                    if (index > 1 && index < cells.length - 1) {
+                        if (cell.querySelector('.bg-green-100')) {
+                            dataRow.push('Present');
+                        } else if (cell.querySelector('.bg-red-100')) {
+                            dataRow.push('Absent');
+                        } else {
+                            dataRow.push(cell.innerText);
+                        }
+                    } else {
+                        dataRow.push(cell.innerText);
+                    }
+                });
+                data.push(dataRow);
+            });
+            
+            // Convert data to worksheet
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Set column widths
+            const colWidths = [
+                { wch: 20 },  // Student name
+                { wch: 12 },  // School ID
+            ];
+            
+            // Add date columns with width 10
+            for (let i = 2; i < headerRow.length - 1; i++) {
+                colWidths.push({ wch: 10 });
+            }
+            
+            // Last column for attendance percentage
+            colWidths.push({ wch: 12 });
+            
+            ws['!cols'] = colWidths;
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, '{{ subject.name }} Attendance');
+            
+            // Generate file name with date
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const fileName = `Attendance_{{ subject.code.replace(' ', '_') }}_${dateStr}.xlsx`;
+            
+            // Export to file
+            XLSX.writeFile(wb, fileName);
+        }
+    </script>
+{% endblock %}
